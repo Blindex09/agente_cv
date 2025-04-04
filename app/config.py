@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 import logging
-from google import genai
+import google.generativeai as genai
 
 # --- Variáveis globais ---
 NOME_MODELO_GEMMA = 'gemma-3-27b-it'  # Nova versão Gemma 3 com 27B parâmetros
@@ -12,7 +12,7 @@ CV_EXTENSIONS = {'pdf', 'docx'}
 nome_arquivo_html_formulario = "interface.html"
 nome_arquivo_relatorio_saida_base = "relatorio"
 
-# Variável global para o cliente GenAI
+# Variável global para a biblioteca GenAI configurada
 modelo_gemini = None
 
 def configure_app(app):
@@ -35,7 +35,7 @@ def configure_app(app):
     return app
 
 def inicializar_modelo_gemini():
-    """Inicializa o cliente GenAI para acessar o modelo Gemma 3 com a API Key"""
+    """Inicializa a biblioteca GenAI para acessar o modelo Gemma 3 com a API Key"""
     global modelo_gemini
     logging.info("Verificando GEMINI_API_KEY...")
     api_key = os.environ.get("GEMINI_API_KEY")
@@ -44,9 +44,17 @@ def inicializar_modelo_gemini():
         return False
     logging.info("Chave API encontrada (Contexto 2025).")
     try:
-        # Criar o cliente com a nova API GenAI
-        modelo_gemini = genai.Client(api_key=api_key)
-        logging.info(f"Cliente GenAI para modelo '{NOME_MODELO_GEMMA}' inicializado.")
+        # Configurar a biblioteca GenAI com a chave de API
+        genai.configure(api_key=api_key)
+        
+        # Verificar se podemos acessar modelos (teste de validação)
+        models = genai.list_models()
+        if not any(NOME_MODELO_GEMMA in model.name for model in models):
+            logging.warning(f"Modelo {NOME_MODELO_GEMMA} não encontrado nos modelos disponíveis.")
+        
+        # Atribui a biblioteca configurada à variável global
+        modelo_gemini = genai
+        logging.info(f"Biblioteca GenAI para modelo '{NOME_MODELO_GEMMA}' inicializada.")
         return True
     except Exception as e:
         logging.error(f"!!! ERRO (Contexto 2025) ao configurar API/Cliente GenAI: {e} !!!", exc_info=True)
@@ -54,6 +62,6 @@ def inicializar_modelo_gemini():
         return False
 
 def get_modelo_gemini():
-    """Retorna a instância global do cliente GenAI"""
+    """Retorna a instância global da biblioteca GenAI configurada"""
     global modelo_gemini
     return modelo_gemini

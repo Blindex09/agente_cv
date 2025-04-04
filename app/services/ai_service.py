@@ -6,7 +6,8 @@ import logging
 from werkzeug.utils import secure_filename
 from flask import current_app
 from app.config import get_modelo_gemini, NOME_MODELO_GEMMA
-from google.genai import errors
+import google.generativeai as genai
+from google.api_core import exceptions as api_exceptions
 
 def extrair_dados_com_ia(texto_cv):
     """Extrai dados de um CV usando o modelo Gemma 3"""
@@ -28,10 +29,9 @@ INSTRUÇÕES DETALHADAS...
 --- FIM CV ---"""  # Prompt modificado com instruções de formatação
         
         logging.info("Enviando solicitação IA (extração)...")
-        response = client.models.generate_content(
-            model=NOME_MODELO_GEMMA,
-            contents=prompt
-        )
+        # Usar GenerativeModel em vez de generate_content diretamente
+        model = genai.GenerativeModel(NOME_MODELO_GEMMA)
+        response = model.generate_content(prompt)
         resposta_limpa = response.text.strip().lstrip('```json').lstrip('```').rstrip('```')
         dados_extraidos = json.loads(resposta_limpa)
         
@@ -41,10 +41,10 @@ INSTRUÇÕES DETALHADAS...
             logging.info("JSON da extração IA interpretado!")
             
         return dados_extraidos, "Dados extraídos com sucesso.", quota_error
-    except errors.APIError as e:
+    except (api_exceptions.ResourceExhausted, api_exceptions.PermissionDenied) as e:
         logging.error(f"Erro na API GenAI (extração): {e}", exc_info=True)
         
-        if e.code == 429 or "quota" in str(e).lower():
+        if "quota" in str(e).lower() or "rate limit" in str(e).lower():
             quota_error = True
             msg_erro = "Erro de Cota da API (extração)"
         else:
@@ -94,10 +94,9 @@ Instruções:
 - Mantenha o texto limpo e fácil de ler"""  # Prompt modificado
         
         logging.info("Enviando solicitação IA (relatório)...")
-        resp = client.models.generate_content(
-            model=NOME_MODELO_GEMMA,
-            contents=prompt
-        )
+        # Usar GenerativeModel em vez de generate_content diretamente
+        model = genai.GenerativeModel(NOME_MODELO_GEMMA)
+        resp = model.generate_content(prompt)
         texto = resp.text
         
         base_name = os.path.splitext(secure_filename(nome_arquivo_original))[0]
@@ -110,10 +109,10 @@ Instruções:
             
         logging.info("Relatório salvo.")
         return True, f"Relatório salvo como {nome_arquivo_relatorio}", quota_error
-    except errors.APIError as e:
+    except (api_exceptions.ResourceExhausted, api_exceptions.PermissionDenied) as e:
         logging.error(f"Erro na API GenAI (relatório): {e}", exc_info=True)
         
-        if e.code == 429 or "quota" in str(e).lower():
+        if "quota" in str(e).lower() or "rate limit" in str(e).lower():
             quota_error = True
             msg_erro = "Erro de Cota da API (relatório)"
         else:
@@ -165,17 +164,16 @@ RESPOSTA:"""  # Prompt modificado
     
     try:
         logging.info(f"Chamando IA Instrução Inicial Batch {batch_id}...")
-        response = client.models.generate_content(
-            model=NOME_MODELO_GEMMA,
-            contents=prompt_chat
-        )
+        # Usar GenerativeModel em vez de generate_content diretamente
+        model = genai.GenerativeModel(NOME_MODELO_GEMMA)
+        response = model.generate_content(prompt_chat)
         ai_reply = response.text.strip()
         logging.info("Resposta Instrução Inicial IA recebida.")
         return ai_reply, False
-    except errors.APIError as e:
+    except (api_exceptions.ResourceExhausted, api_exceptions.PermissionDenied) as e:
         logging.error(f"Erro IA instrução inicial: {e}", exc_info=True)
         
-        if e.code == 429 or "quota" in str(e).lower():
+        if "quota" in str(e).lower() or "rate limit" in str(e).lower():
             return "Erro de Cota da API (instrução inicial)", True
             
         return f"Erro na API (instrução inicial): {e}", False
@@ -217,20 +215,19 @@ RESPOSTA:"""  # Prompt modificado
     
     try:
         logging.info(f"Chamando IA Chat Batch {batch_id}...")
-        response = client.models.generate_content(
-            model=NOME_MODELO_GEMMA,
-            contents=prompt_chat
-        )
+        # Usar GenerativeModel em vez de generate_content diretamente
+        model = genai.GenerativeModel(NOME_MODELO_GEMMA)
+        response = model.generate_content(prompt_chat)
         ai_reply = response.text.strip()
         
         if not ai_reply:
             return None, "IA retornou resposta vazia.", False
             
         return ai_reply, None, False
-    except errors.APIError as e:
+    except (api_exceptions.ResourceExhausted, api_exceptions.PermissionDenied) as e:
         logging.error(f"Erro IA Chat Batch {batch_id}: {e}", exc_info=True)
         
-        if e.code == 429 or "quota" in str(e).lower():
+        if "quota" in str(e).lower() or "rate limit" in str(e).lower():
             return None, "Limite de uso da IA atingido.", True
         else:
             return None, f"Erro na API (chat): {e}", False

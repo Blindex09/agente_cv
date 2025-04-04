@@ -6,7 +6,8 @@ import requests
 from bs4 import BeautifulSoup
 from flask import current_app
 from app.config import get_modelo_gemini, NOME_MODELO_GEMMA
-from google.genai import errors
+import google.generativeai as genai
+from google.api_core import exceptions as api_exceptions
 
 def pesquisar_e_sumarizar_web(texto_cv_completo):
     """Pesquisa na web conteúdo relacionado ao CV e o sumariza usando Gemma 3"""
@@ -28,19 +29,18 @@ def pesquisar_e_sumarizar_web(texto_cv_completo):
         logging.info("Solicitando IA (tópico/URL)...")
         
         try:
-            resp_ia = client.models.generate_content(
-                model=NOME_MODELO_GEMMA,
-                contents=prompt_ia
-            )
+            # Usar GenerativeModel em vez de generate_content diretamente
+            model = genai.GenerativeModel(NOME_MODELO_GEMMA)
+            resp_ia = model.generate_content(prompt_ia)
             resp_limpa = resp_ia.text.strip().lstrip('```json').lstrip('```').rstrip('```')
             dados = json.loads(resp_limpa)
             topico = dados.get("topico")
             url = dados.get("url_sugerida")
-        except errors.APIError as e_api:
+        except (api_exceptions.ResourceExhausted, api_exceptions.PermissionDenied) as e_api:
             logging.error(f"Erro API GenAI (tópico/URL): {e_api}", exc_info=True)
             status_final = "Erro ao identificar tópico/URL com IA."
             
-            if e_api.code == 429 or "quota" in str(e_api).lower():
+            if "quota" in str(e_api).lower() or "rate limit" in str(e_api).lower():
                 quota_error_ocorreu = True
                 status_final = "Erro de Cota da API (tópico/URL)"
             
@@ -99,10 +99,9 @@ def pesquisar_e_sumarizar_web(texto_cv_completo):
             prompt_resumo = f"Resuma o conteúdo web sobre '{topico}' em 2-4 frases.\nTítulo: {titulo}\nConteúdo: {conteudo_texto[:2000]}\nResumo Conciso:"
             
             try:
-                response_resumo = client.models.generate_content(
-                    model=NOME_MODELO_GEMMA,
-                    contents=prompt_resumo
-                )
+                # Usar GenerativeModel em vez de generate_content diretamente
+                model = genai.GenerativeModel(NOME_MODELO_GEMMA)
+                response_resumo = model.generate_content(prompt_resumo)
                 resumo_web = response_resumo.text.strip()
                 
                 if not resumo_web:
@@ -111,11 +110,11 @@ def pesquisar_e_sumarizar_web(texto_cv_completo):
                 resultado_pesquisa_final = f"Fonte: {url}\nResumo (IA): {resumo_web}"
                 status_final = "Pesquisa e sumarização concluídas."
                 logging.info("Sumarização web concluída.")
-            except errors.APIError as e_api:
+            except (api_exceptions.ResourceExhausted, api_exceptions.PermissionDenied) as e_api:
                 logging.error(f"Erro API GenAI (sumarização): {e_api}", exc_info=True)
                 status_final = "Erro ao sumarizar conteúdo web."
                 
-                if e_api.code == 429 or "quota" in str(e_api).lower():
+                if "quota" in str(e_api).lower() or "rate limit" in str(e_api).lower():
                     quota_error_ocorreu = True
                     status_final = "Erro de Cota da API (sumarização)"
                     

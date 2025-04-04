@@ -1,0 +1,64 @@
+Nome: Felipe Olivencia Garcia
+Email: olivencia09@gmail.com
+Tel: (13) 99123-0542
+
+Formação Acadêmica:
+- UniSantos, Tecnólogo em Gestão em Tecnologia da Informação, 02/2023 - 02/2026
+- E.E. João Teodoresco, Ensino Médio Técnico em Manutenção e Suporte em Informática, 2010
+
+Cursos e Certificações:
+- Deque University, Dynamic Updates, AJAX and. Single Page Applications
+- Deque University, IOS-Accessibility Techniques
+- Deque University, Semantic Structureand Navigation (with WCAG 2.2 updates)
+- Deque University, Web Accessibility Testing_-Basic Methods and. Tools
+- Deque University, eb Accessibility Testing_-Screen Readers
+- Deque University, Accessibility Quick Access for Any Function Semantic Structure and. Navigation (with WCAG 2.2 updates)
+- Deque University, Fast Track to Accessibility for Designers Graded Exam Completion Certificate
+- Deque University, ARIA Widgets
+- Deque University, Device Independent Input Methods-(with WCAG 2.2 updates)
+- Deque University, Dynamic Updates,-AJAX,-and. Single Page Apps
+- Deque University, Fast Track to Accessibility for Any Role-(Non Technical)
+- Deque University, Fast Track to Accessibility for Designers
+- Deque university, Fast Track to Accessibility for Designers GradedExam
+- Deque University, FastTrack to Accessibility for Non Technical Roles GradedExam
+- Deque University, Form Labels,-Instructions,-and Validation-(with WCAG 2.2 updates)
+- Alura, HTML e CSS: Classes, Posicionamento e Flexbox
+- Alura, Acessibilidade web_ crie designs inclusivos
+- Alura, Acessibilidade web tornando seu front-end. inclusivo
+- Alura, Acessibilidade web parte 2_ componentes acessíveis com um pouco de Javascript
+- Alura, Acessibilidade no HTML_ escrevendo códigos semânticos para inclusão
+- Alura, IA generativa no Frontend trabalhando com acessibilidade, semântica e HTML
+- Inter acessibilidade, Acessibilidade em documentos e apresentações
+- More, Analista de Testes de Acessibilidade
+- Udemy, Do Zero ao Código. Acessibilidade Digital para DEVS
+
+Experiência Profissional:
+- Analista de Suporte III, Radix Engenharia e Software, 02/2021 - 02/2024
+  - Gerenciar e resolver problemas técnicos dos colaboradores utilizando a plataforma Jira.
+  - Uso do Fort Cliente para suporte e garantia do funcionamento da rede.
+  - Administração de ambientes no Azure, criação e manutenção de máquinas virtuais.
+  - Gerenciamento de contas e acessos no active directory.
+  - Execução de backups e recuperação de dados utilizando RDP.
+  - Suporte remoto para manutenção de hardware e software (Windows 11).
+  - Monitoramento e resolução de vulnerabilidades de segurança.
+  - Participação em projetos Deops.
+- Analista de Acessibilidade, CI&T, 01/2021 - 02/2023
+  - Assegurar que plataformas web e aplicativos móveis atendessem às diretrizes WCAG e WAI-ARIA.
+  - Desenvolvimento de casos de teste e elaboração de relatórios de acessibilidade.
+  - Realização de testes exploratórios e automatizados (Collor Contraste Analyser, Google Light ouse).
+  - Avaliações de contraste de cores, estrutura semântica e navegação.
+  - Colaboração com designers e desenvolvedores para melhorar a usabilidade e conformidade.
+  - Revisões de código e auditorias de acessibilidade.
+  - Criação de documentação abrangente de acessibilidade (guias de estilo e checklists).
+- Telefonista, UNIMES, 09/2016 - 05/2017
+  - Primeiro ponto de contato para alunos e candidatos.
+  - Esclarecimento de dúvidas sobre vestibulares, cursos e processos de ingresso.
+  - Gerenciamento de chamadas telefônicas e direcionamento de incidentes.
+- Analista de Suporte, Serasa Experian, 08/2014 - 03/2015
+  - Atendimento de chamados dos colaboradores da empresa.
+  - Cadastro de usuários, gerenciamento de acessos e reset de senhas.
+  - Manutenção de computadores e reparos em sistemas operacionais.
+- Analista de Suporte, Banco Santander S/A, 04/2011 - 02/2012
+  - Gerenciamento de chamados utilizando a plataforma Jira.
+  - Liberação de acessos utilizando RDP.
+  - Suporte remoto para configuração de dispositivos de armazenamento e manutenção de sistemas.
