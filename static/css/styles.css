@@ -6,8 +6,7 @@ body {
     background-color: #f8f9fa;
     color: #212529;
     line-height: 1.6;
-    display: flex;
-    justify-content: center;
+    /* Removido display:flex e justify-content para permitir scroll normal da página */
     min-height: 100vh;
 }
 .container {
@@ -17,7 +16,7 @@ body {
     box-shadow: 0 4px 15px rgba(0, 0, 0, .08);
     max-width: 900px;
     width: 95%;
-    margin: 20px auto;
+    margin: 20px auto; /* Centraliza o container */
     display: flex;
     flex-direction: column;
 }
@@ -50,20 +49,22 @@ label {
     margin-bottom: 5px;
 }
 input[type=text], input[type=file] {
-    width: calc(100% - 24px);
+    width: calc(100% - 24px); /* Ajusta para padding */
     padding: 10px 12px;
     margin-top: 5px;
     border: 1px solid #ced4da;
     border-radius: 6px;
     font-size: 1rem;
     transition: border-color .2s ease-in-out, box-shadow .2s ease-in-out;
+    box-sizing: border-box; /* Garante que padding não aumente a largura total */
 }
 input[type=text]:focus, input[type=file]:focus {
     border-color: #86b7fe;
     outline: 0;
     box-shadow: 0 0 0 .2rem rgba(0, 123, 255, .25);
 }
-button {
+button,
+button[type=button] { /* Garante especificidade para botões sem type="submit" */
     padding: 10px 18px;
     margin-top: 20px;
     cursor: pointer;
@@ -74,6 +75,7 @@ button {
     font-size: 1rem;
     font-weight: 500;
     transition: background-color .2s ease-in-out, transform .1s ease;
+    vertical-align: middle; /* Alinha melhor com inputs */
 }
 button:hover:not(:disabled) {
     background-color: #0056b3;
@@ -97,6 +99,7 @@ button:disabled {
     margin-left: 8px;
     cursor: pointer;
     user-select: none;
+    vertical-align: middle;
 }
 .options input[type=checkbox] {
     width: auto;
@@ -116,14 +119,18 @@ button:disabled {
     border: 1px solid #e9ecef;
     border-radius: 8px;
     background-color: #f8f9fa;
-    min-height: 150px;
-    max-height: 450px;
-    overflow-y: auto;
+    min-height: 150px; /* Altura mínima */
+    max-height: 450px; /* Altura máxima */
+    overflow-y: auto; /* Scroll se necessário */
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     font-size: .95em;
     line-height: 1.5;
 }
-.status-message {
+/* Área de resultados (se usada) */
+#results-output {
+    margin-top: 15px;
+}
+.status-message { /* Para mensagens dentro de #status */
     display: block;
     margin-bottom: 8px;
     padding-bottom: 8px;
@@ -136,7 +143,9 @@ button:disabled {
     font-weight: 600;
     color: #0056b3;
 }
-.status-message pre {
+/* Bloco <pre> dentro de #status ou #results-output */
+#status pre,
+#results-output pre {
     background-color: #e9ecef;
     padding: 8px 10px;
     border-radius: 4px;
@@ -149,7 +158,8 @@ button:disabled {
     font-size: .9em;
     font-family: 'Consolas', 'Monaco', monospace;
 }
-/* Estados e cores de mensagens */
+
+/* Estados e cores de mensagens (aplicável em #status, #chat-messages, etc.) */
 .loading {
     color: #007bff;
     font-style: italic;
@@ -172,7 +182,7 @@ button:disabled {
 .info {
     color: #495057;
 }
-.quota-error {
+.quota-error { /* Específico para erro de cota */
     color: #dc3545;
     font-weight: 700;
 }
@@ -185,7 +195,7 @@ button:disabled {
     padding: 0;
     margin-top: 10px;
 }
-#file-preview-list li {
+#file-preview-list li.file-item { /* Mais específico */
     background-color: #e9ecef;
     border: 1px solid #dee2e6;
     padding: 8px 12px;
@@ -197,7 +207,7 @@ button:disabled {
     font-size: .9em;
     transition: background-color .2s ease;
 }
-#file-preview-list li:hover {
+#file-preview-list li.file-item:hover {
     background-color: #dde2e6;
 }
 #file-preview-list .file-info {
@@ -206,12 +216,14 @@ button:disabled {
     white-space: nowrap;
     margin-right: 10px;
     font-weight: 500;
+    flex-grow: 1; /* Ocupa espaço disponível */
 }
 #file-preview-list .file-size {
     color: #495057;
-    margin-left: 10px;
+    margin-left: 10px; /* Espaço antes do tamanho */
     white-space: nowrap;
     font-size: .9em;
+    flex-shrink: 0; /* Não encolhe */
 }
 #file-preview-list .remove-btn {
     background-color: #dc3545;
@@ -221,16 +233,29 @@ button:disabled {
     padding: 4px 8px;
     font-size: .8em;
     cursor: pointer;
-    margin-left: 10px;
+    margin-left: 10px; /* Espaço antes do botão */
     line-height: 1;
     transition: background-color .2s ease;
+    flex-shrink: 0; /* Não encolhe */
+    margin-top: 0; /* Remove margem-top padrão de botão */
 }
-#file-preview-list .remove-btn:hover {
+#file-preview-list .remove-btn:hover:not(:disabled) {
     background-color: #c82333;
+    transform: none; /* Remove hover de botão padrão */
 }
-#file-preview-list .empty-message {
+#file-preview-list .remove-btn:disabled {
+     background-color: #adb5bd;
+     cursor: not-allowed;
+     opacity: .7;
+}
+#file-preview-list li.empty-message { /* Mais específico */
     color: #6c757d;
     font-style: italic;
+    padding: 10px;
+    text-align: center;
+    background-color: transparent;
+    border: 1px dashed #ced4da;
+    border-radius: 6px;
 }
 /* Seção de chat */
 #chat-section {
@@ -248,7 +273,7 @@ button:disabled {
     border-radius: 8px;
     scroll-behavior: smooth;
 }
-#chat-messages div {
+#chat-messages div { /* Aplica a todas as mensagens */
     margin-bottom: 12px;
     line-height: 1.5;
 }
@@ -259,67 +284,97 @@ button:disabled {
     background-color: #cfe2ff;
     color: #052c65;
     padding: 10px 14px;
-    border-radius: 15px 15px 0 15px;
+    border-radius: 15px 15px 0 15px; /* Balão para direita */
     display: inline-block;
     max-width: 75%;
     text-align: left;
-    word-wrap: break-word;
+    word-wrap: break-word; /* Quebra palavras longas */
 }
-#chat-messages .ai-message span, #chat-messages .system-message span {
+#chat-messages .ai-message span,
+#chat-messages .system-message span {
     background-color: #e9ecef;
     color: #343a40;
     padding: 10px 14px;
-    border-radius: 15px 15px 15px 0;
+    border-radius: 15px 15px 15px 0; /* Balão para esquerda */
     display: inline-block;
     max-width: 75%;
     text-align: left;
     word-wrap: break-word;
 }
+/* Estilos específicos para mensagens de sistema */
 #chat-messages .system-message span {
-    background-color: #fff3cd;
+    background-color: #fff3cd; /* Amarelo claro */
     color: #664d03;
     border: 1px solid #ffecb5;
     font-style: italic;
-    max-width: 85%;
+    max-width: 85%; /* Pode ocupar mais largura */
 }
+#chat-messages .system-message.info span { /* Exemplo: sistema info */
+     background-color: #cce5ff;
+     color: #004085;
+     border-color: #b8daff;
+}
+#chat-messages .system-message.warning span { /* Exemplo: sistema aviso */
+    background-color: #fff3cd;
+    color: #856404;
+    border-color: #ffeeba;
+    font-weight: bold;
+}
+#chat-messages .system-message.error span { /* Exemplo: sistema erro */
+    background-color: #f8d7da;
+    color: #721c24;
+    border-color: #f5c6cb;
+    font-weight: bold;
+}
+
+/* Mensagem de "carregando" da IA */
 #chat-messages .ai-message span.loading {
     color: #6c757d;
     font-style: italic;
     background-color: #e9ecef;
     border: none;
 }
-#chat-messages .ai-message span.error, #chat-messages .system-message span.error {
+/* Erro dentro de uma mensagem da IA */
+#chat-messages .ai-message span.error {
     background-color: #f8d7da;
     color: #721c24;
     border: 1px solid #f5c6cb;
     font-weight: 700;
 }
-#chat-messages .system-message span.warning {
-    background-color: #fff3cd;
-    color: #664d03;
-    border: 1px solid #ffecb5;
-    font-weight: 700;
-}
+/* Listas dentro das mensagens */
 #chat-messages ul, #status ul {
     margin-top: 8px;
     margin-bottom: 8px;
-    padding-left: 25px;
+    padding-left: 25px; /* Espaçamento para bullets */
+    list-style-type: none; /* Remove bullets padrão se usar ::before */
 }
 #chat-messages li, #status li {
     margin-bottom: 4px;
+    position: relative; /* Para posicionar o ::before */
+    padding-left: 5px; /* Espaço após o bullet */
 }
+/* Adiciona bullet customizado */
+#chat-messages li::before, #status li::before {
+    content: "•"; /* Bullet */
+    position: absolute;
+    left: -15px; /* Posiciona à esquerda */
+    color: #0056b3; /* Cor do bullet */
+    font-weight: bold;
+}
+
 #chat-input-container {
     display: flex;
     margin-top: 10px;
-    align-items: center;
+    align-items: center; /* Alinha verticalmente input e botão */
 }
 #chat-input {
-    flex-grow: 1;
+    flex-grow: 1; /* Input ocupa espaço restante */
     margin-top: 0;
-    margin-right: 10px;
+    margin-right: 10px; /* Espaço entre input e botão */
 }
 #btnEnviarChat {
-    margin-top: 0;
+    margin-top: 0; /* Remove margem padrão do botão */
+    flex-shrink: 0; /* Botão não encolhe */
 }
 #upload-section {
     margin-top: 20px;
@@ -334,167 +389,177 @@ button:disabled {
 
 /* Novas adições para suportar a estrutura modular */
 
-/* Indicador de carregamento */
+/* Indicador de carregamento global */
 #loading-indicator {
-    display: none;
+    display: none; /* Começa escondido */
     position: fixed;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background-color: rgba(0, 0, 0, 0.7);
+    background-color: rgba(0, 0, 0, 0.8); /* Mais escuro */
     color: white;
-    padding: 20px;
-    border-radius: 5px;
-    z-index: 1100;
+    padding: 25px 30px;
+    border-radius: 8px;
+    z-index: 11000; /* Acima de tudo, até do backdrop */
     text-align: center;
-    box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.4);
+}
+/* Adiciona um spinner simples ao indicador */
+#loading-indicator::before {
+    content: "";
+    display: block;
+    width: 30px;
+    height: 30px;
+    margin: 0 auto 15px;
+    border-radius: 50%;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #007bff; /* Cor do spinner */
+    animation: spin 1s linear infinite; /* Usa a animação spin definida abaixo */
 }
 
-/* Notificações de sistema */
+
+/* Notificações de sistema (banners no topo) */
 .offline-message, .error-banner, .warning-banner {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
-    padding: 10px;
+    padding: 12px 15px;
     text-align: center;
-    z-index: 1000;
+    z-index: 1050; /* Abaixo do loading, acima do resto */
     font-weight: bold;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 .offline-message {
-    background-color: #ffc107;
-    color: #000;
+    background-color: #ffc107; /* Amarelo */
+    color: #333;
 }
 .error-banner {
-    background-color: #dc3545;
+    background-color: #dc3545; /* Vermelho */
     color: #fff;
-    padding: 15px;
 }
 .error-banner button, .warning-banner button {
-    background-color: #fff;
-    color: #000;
-    margin-left: 10px;
-    margin-top: 5px;
+    background-color: rgba(255, 255, 255, 0.8);
+    color: #333;
+    border: 1px solid rgba(0,0,0,0.2);
+    margin-left: 15px;
+    margin-top: 0px; /* Remove margin top */
     padding: 5px 10px;
     font-size: 0.9em;
+    vertical-align: middle;
 }
 .warning-banner {
-    background-color: #ffc107;
-    color: #000;
-    padding: 15px;
+    background-color: #ffc107; /* Amarelo */
+    color: #333;
 }
 
-/* Efeito de fade-out para alertas */
+/* Efeito de fade-out para alertas (se usado) */
 .fade-out {
     opacity: 0;
-    transition: opacity 0.5s;
+    transition: opacity 0.5s ease-out;
 }
 
-/* Estilos para código formatado */
+/* Estilos para código formatado (inline e bloco) */
 code.inline-code {
-    background-color: #f0f0f0;
-    padding: 2px 4px;
-    border-radius: 3px;
+    background-color: #e9ecef; /* Cinza claro */
+    padding: 2px 5px;
+    border-radius: 4px;
     font-family: 'Consolas', 'Monaco', monospace;
     font-size: 0.9em;
+    color: #333;
+    border: 1px solid #dee2e6;
 }
 pre.code-block {
-    background-color: #f0f0f0;
-    padding: 10px;
+    background-color: #282c34; /* Fundo escuro para blocos */
+    color: #abb2bf; /* Texto claro */
+    padding: 15px;
     border-radius: 5px;
     overflow-x: auto;
     font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 0.9em;
     margin: 10px 0;
-    border: 1px solid #ddd;
+    border: 1px solid #444;
+    white-space: pre; /* Mantém espaços/tabs, sem quebra automática */
 }
 
-/* Melhor visualização de listas em mensagens */
-#chat-messages ul, #status ul {
-    list-style-type: none;
-    padding-left: 20px;
-    margin: 8px 0;
-}
-#chat-messages li, #status li {
-    position: relative;
-    padding: 4px 0;
-    margin-bottom: 4px;
-}
-#chat-messages li::before, #status li::before {
-    content: "•";
-    position: absolute;
-    left: -15px;
-    color: #555;
-}
 
 /* Feedback visual para drag and drop */
-body.dragging #upload-section {
-    border: 2px dashed #007bff;
-    background-color: #f0f7ff;
+body.dragging #upload-section { /* Aplica só na seção de upload */
+    border: 3px dashed #007bff;
+    background-color: #e7f3ff; /* Azul bem claro */
     border-radius: 8px;
-    padding: 20px;
-    transition: all 0.3s ease;
+    box-shadow: inset 0 0 15px rgba(0, 123, 255, 0.1);
+    transition: all 0.2s ease-in-out;
 }
-
-/* Estilos para o Modal - Ajustados para melhor acessibilidade */
-.modal {
-    display: none;
+/* Opcional: feedback no body todo */
+/*
+body.dragging::before {
+    content: 'Solte os arquivos aqui!';
     position: fixed;
-    z-index: 9999; /* Valor elevado para garantir que apareça na frente */
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    overflow: auto;
-    background-color: rgba(0,0,0,0.7); /* Fundo mais escuro para maior contraste */
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 123, 255, 0.1);
+    border: 5px dashed #007bff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 2em;
+    color: #0056b3;
+    font-weight: bold;
+    z-index: 9000;
+    pointer-events: none;
+}
+*/
+
+
+/* ============ ESTILOS PARA O <dialog> E SEU CONTEÚDO ============ */
+
+dialog#fullContentModal {
+    border: 1px solid #ccc; /* Borda padrão do dialog */
+    border-radius: 12px; /* Consistente com o container */
+    padding: 0; /* Remove padding padrão do dialog se usar .modal-content */
+    box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+    max-width: 85%; /* Largura máxima */
+    width: 800px; /* Largura fixa se preferir */
+    max-height: 85vh; /* Altura máxima */
+    overflow: hidden; /* Overflow gerenciado pelo .modal-content */
+    /* 'animation' pode ser adicionado aqui ou no .modal-content */
+    animation: modalFadeIn 0.3s ease-out;
 }
 
-.modal-high-priority {
-    z-index: 10000; /* Prioridade extra alta */
+/* Estilo para o fundo (backdrop) quando o dialog está aberto */
+dialog#fullContentModal::backdrop {
+    background-color: rgba(0, 0, 0, 0.7); /* Fundo escuro semi-transparente */
+    /* backdrop-filter: blur(3px); */ /* Efeito de desfoque opcional */
+    animation: backdropFadeIn 0.3s ease-out; /* Animação suave */
 }
 
-.modal-content {
-    position: relative;
+/* Conteúdo interno do dialog */
+dialog#fullContentModal .modal-content {
+    /* Remove estilos de posicionamento/margem do .modal-content original */
     background-color: #fefefe;
-    margin: 5% auto;
-    padding: 25px;
-    border: 2px solid #333; /* Borda mais visível */
-    width: 85%;
-    max-width: 800px;
-    border-radius: 8px;
-    box-shadow: 0 5px 20px rgba(0,0,0,0.5); /* Sombra mais pronunciada */
+    padding: 25px; /* Espaçamento interno */
+    border: none; /* Remove borda se o dialog já tiver */
+    border-radius: 0; /* Remove se o dialog já tiver */
+    box-shadow: none; /* Remove se o dialog já tiver */
     display: flex;
     flex-direction: column;
-    max-height: 85vh;
-    animation: modalFadeIn 0.3s; /* Animação suave para aparecer */
+    /* Define altura para permitir scroll interno se necessário */
+    /* A altura é limitada pelo max-height do dialog */
+    height: calc(85vh - 50px); /* Exemplo: Altura máxima menos padding */
+    max-height: 100%; /* Não exceder o dialog */
 }
 
+/* Animações */
 @keyframes modalFadeIn {
-    from {opacity: 0; transform: translateY(-20px);}
-    to {opacity: 1; transform: translateY(0);}
+    from { opacity: 0; transform: translateY(-30px) scale(0.95); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes backdropFadeIn {
+     from { opacity: 0; }
+     to { opacity: 1; }
 }
 
-.close-modal {
-    color: #333; /* Cor mais escura para contraste */
-    position: absolute;
-    top: 10px;
-    right: 15px;
-    font-size: 28px;
-    font-weight: bold;
-    cursor: pointer;
-    line-height: 1;
-    padding: 5px 10px; /* Área de clique maior */
-    transition: all 0.2s;
-}
-
-.close-modal:hover,
-.close-modal:focus {
-    color: #000;
-    text-decoration: none;
-    background-color: #f0f0f0;
-    border-radius: 4px;
-    outline: 2px solid #007bff; /* Outline para acessibilidade no foco */
-}
-
+/* Título dentro do dialog */
 #modal-title {
     margin-top: 0;
     margin-bottom: 15px;
@@ -502,82 +567,100 @@ body.dragging #upload-section {
     font-size: 1.4em;
     border-bottom: 1px solid #ccc;
     padding-bottom: 10px;
+    flex-shrink: 0; /* Título não encolhe */
+}
+/* Ajuste de foco para o título */
+#modal-title:focus {
+    outline: 2px solid #007bff;
+    outline-offset: 2px;
 }
 
+
+/* Wrapper do conteúdo principal do dialog */
 #modal-file-content-wrapper {
-    flex-grow: 1;
-    overflow-y: auto;
-    margin-bottom: 15px;
+    flex-grow: 1; /* Ocupa o espaço vertical restante */
+    overflow-y: auto; /* Scroll vertical SÓ AQUI */
+    margin-bottom: 15px; /* Espaço antes das ações */
     border: 1px solid #ddd;
     border-radius: 4px;
-    padding: 2px;
+    padding: 0; /* Padding será no filho */
+    background-color: #f9f9f9; /* Fundo da área de texto */
 }
 
+/* Área de texto do conteúdo */
 #modal-file-content {
-    white-space: pre-wrap;
-    word-wrap: break-word;
+    white-space: pre-wrap; /* Mantém quebras de linha e espaços */
+    word-wrap: break-word; /* Quebra palavras longas */
     font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
-    font-size: 0.9em;
-    line-height: 1.5;
-    background-color: #f9f9f9;
-    padding: 15px;
-    min-height: 100px;
+    font-size: 0.95em; /* Tamanho um pouco maior */
+    line-height: 1.6; /* Espaçamento entre linhas */
+    padding: 15px; /* Espaçamento interno do texto */
+    min-height: 100px; /* Altura mínima */
 }
 
+/* Seção de ações no rodapé do dialog */
 #modal-actions {
-    text-align: right;
-    padding-top: 10px;
+    text-align: right; /* Alinha botões à direita */
+    padding-top: 15px; /* Espaço acima dos botões */
     border-top: 1px solid #eee;
+    flex-shrink: 0; /* Rodapé não encolhe */
 }
 
+/* Estilo específico para botões dentro das ações do modal */
 #modal-actions button {
-    background-color: #007bff;
-    color: white;
-    border: none;
+    margin-top: 0; /* Remove margem padrão */
+    margin-left: 10px; /* Espaço entre botões */
     padding: 8px 15px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.9em;
-    transition: background-color 0.2s, transform 0.1s;
+    font-size: 0.95em;
+}
+/* Estilo específico para o botão fechar (se necessário diferenciar) */
+#internalCloseModalBtn {
+    background-color: #6c757d; /* Cinza */
+}
+#internalCloseModalBtn:hover:not(:disabled) {
+    background-color: #5a6268;
 }
 
-#modal-actions button:hover,
-#modal-actions button:focus {
-    background-color: #0056b3;
-    outline: 2px solid #0056b3;
-    transform: translateY(-1px);
-}
 
+/* Spinner e mensagens de erro/info dentro do modal */
 .loading-spinner,
-.error-message {
+.error-message,
+.info-message { /* Adiciona estilo para info-message */
     text-align: center;
-    padding: 30px;
+    padding: 40px 20px; /* Mais padding vertical */
     font-size: 1.1em;
+    min-height: 100px; /* Garante altura mínima */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
 }
 
+/* Spinner (animação definida abaixo) */
 .loading-spinner::before {
     content: "";
-    display: block;
+    display: block; /* Já é block por padrão, mas explícito */
     width: 40px;
     height: 40px;
-    margin: 0 auto 20px;
+    margin-bottom: 20px; /* Espaço abaixo do spinner */
     border-radius: 50%;
-    border: 4px solid #f3f3f3;
-    border-top: 4px solid #007bff;
+    border: 5px solid #e9ecef; /* Borda mais clara */
+    border-top: 5px solid #007bff; /* Cor principal */
     animation: spin 1s linear infinite;
 }
-
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
+/* Mensagem de erro no modal */
 .error-message {
     color: #dc3545;
 }
+/* Mensagem informativa no modal (arquivo vazio, etc) */
+.info-message {
+    color: #495057;
+    font-style: italic;
+}
 
+/* Botão 'Tentar novamente' na mensagem de erro */
 .error-message button {
-    margin-top: 10px;
+    margin-top: 15px;
     background-color: #dc3545;
     color: white;
     border: none;
@@ -585,14 +668,20 @@ body.dragging #upload-section {
     border-radius: 4px;
     cursor: pointer;
 }
-
-.error-message button:hover,
+.error-message button:hover:not(:disabled),
 .error-message button:focus {
     background-color: #c82333;
     outline: 2px solid #c82333;
+    transform: none; /* Remove transform padrão de botão */
 }
 
-/* Para leitores de tela */
+/* Animação do Spinner */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Para leitores de tela (essencial para acessibilidade) */
 .sr-only {
     position: absolute;
     width: 1px;
@@ -603,4 +692,15 @@ body.dragging #upload-section {
     clip: rect(0, 0, 0, 0);
     white-space: nowrap;
     border-width: 0;
+}
+
+/* Estilo de foco visível global (ajuste conforme preferência) */
+:is(button, input, [tabindex]):focus-visible {
+   outline: 3px solid #0d6efd; /* Azul mais vibrante */
+   outline-offset: 1px;
+   box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25); /* Sombra suave */
+}
+/* Remove outline padrão se usar focus-visible */
+:is(button, input, [tabindex]):focus:not(:focus-visible) {
+    outline: none;
 }

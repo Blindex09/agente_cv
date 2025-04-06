@@ -1,4 +1,6 @@
-// ui-core.js - Componentes principais da UI e gerenciamento de elementos
+// ui-core.js - Componentes principais da UI e gerenciamento de elementos (v. com <dialog>)
+// IMPORTANTE: Este script assume que o HTML foi modificado para usar <dialog id="fullContentModal">
+// e que o CSS necessário (incluindo .sr-only e estilos para dialog/::backdrop) existe.
 
 // --- Referências e Variáveis Globais ---
 const arquivoInput = document.getElementById('arquivoInput') || null;
@@ -11,8 +13,17 @@ const chatMessages = document.getElementById('chat-messages') || null;
 const chatInput = document.getElementById('chat-input') || null;
 const btnEnviarChat = document.getElementById('btnEnviarChat') || null;
 
+// Variáveis específicas do Modal <dialog>
+let fullContentDialog = null; // Referência ao <dialog>
+let modalTitle = null;
+let modalContent = null;
+let copyModalContentBtn = null;
+let internalCloseModalBtn = null; // Botão de fechar INTERNO do dialog
+let ultimoBotaoFocado = null; // Guarda o botão que abriu o dialog
+
 let arquivosParaEnviar = [];
 
+// Expondo no window (se necessário para outros módulos, mas tente evitar se possível)
 window.arquivoInput = arquivoInput;
 window.btnProcessar = btnProcessar;
 window.statusDiv = statusDiv;
@@ -24,6 +35,7 @@ window.chatInput = chatInput;
 window.btnEnviarChat = btnEnviarChat;
 window.arquivosParaEnviar = arquivosParaEnviar;
 
+
 // --- Funções Auxiliares ---
 function formatBytes(bytes, decimals = 1) {
     if (!+bytes) return '0 Bytes';
@@ -34,6 +46,36 @@ function formatBytes(bytes, decimals = 1) {
     const index = Math.min(i, sizes.length - 1);
     return `${parseFloat((bytes / Math.pow(k, index)).toFixed(dm))} ${sizes[index]}`;
 }
+
+// Função auxiliar para anunciar para leitores de tela (requer classe .sr-only no CSS)
+function anunciarParaLeitorTela(mensagem, role = 'status', ariaLive = 'assertive', container = document.body) {
+    // Tenta encontrar um elemento de anúncio existente dentro do container especificado
+    let statusElement = container.querySelector('.sr-only-announcement');
+
+    if (statusElement) {
+        // Reutiliza o elemento existente
+        statusElement.textContent = mensagem;
+         // Garante que atributos ARIA estejam corretos (podem mudar entre status/alert)
+        statusElement.setAttribute('role', role);
+        statusElement.setAttribute('aria-live', ariaLive);
+    } else {
+        // Cria um novo elemento se não existir
+        statusElement = document.createElement('div');
+        statusElement.className = 'sr-only sr-only-announcement'; // Usa classe definida no CSS
+        statusElement.setAttribute('role', role);
+        statusElement.setAttribute('aria-live', ariaLive);
+        statusElement.textContent = mensagem;
+        container.appendChild(statusElement);
+
+        // Agendar remoção para não poluir o DOM permanentemente
+        setTimeout(() => {
+            if (statusElement && statusElement.parentNode) {
+                statusElement.parentNode.removeChild(statusElement);
+            }
+        }, 2500); // Tempo um pouco maior para garantir leitura
+    }
+}
+
 
 // --- Renderiza lista de arquivos ---
 function renderizarListaArquivos() {
@@ -62,16 +104,17 @@ function renderizarListaArquivos() {
         removeBtn.textContent = 'Remover';
         removeBtn.type = 'button';
         removeBtn.dataset.index = index;
+        // Desabilita se processando (assume que window.isProcessing existe)
         removeBtn.disabled = typeof window.isProcessing === 'function' && window.isProcessing();
         removeBtn.addEventListener('click', (e) => {
             if (typeof window.isProcessing === 'function' && window.isProcessing()) return;
             const iToRemove = parseInt(e.target.dataset.index, 10);
             if (!isNaN(iToRemove)) {
                 arquivosParaEnviar.splice(iToRemove, 1);
-                renderizarListaArquivos();
+                renderizarListaArquivos(); // Atualiza a UI
             }
             if (arquivosParaEnviar.length === 0 && arquivoInput) {
-                arquivoInput.value = null;
+                arquivoInput.value = null; // Limpa o input se a lista ficar vazia
             }
         });
         li.appendChild(fileInfoSpan);
@@ -79,18 +122,19 @@ function renderizarListaArquivos() {
         li.appendChild(removeBtn);
         filePreviewList.appendChild(li);
     });
+    // Habilita/Desabilita botão principal
     if (btnProcessar) {
-         btnProcessar.disabled = typeof window.isProcessing === 'function' && window.isProcessing();
+         btnProcessar.disabled = (arquivosParaEnviar.length === 0) || (typeof window.isProcessing === 'function' && window.isProcessing());
     }
 }
 
-// --- Eventos ---
+// --- Eventos de Upload e Interação ---
 if (arquivoInput) {
     arquivoInput.addEventListener('change', (event) => {
         const novosArquivos = Array.from(event.target.files || []);
         arquivosParaEnviar = arquivosParaEnviar.concat(novosArquivos);
         renderizarListaArquivos();
-        event.target.value = null;
+        event.target.value = null; // Permite selecionar o mesmo arquivo novamente
         if (typeof window.adicionarMensagemChat === 'function' && novosArquivos.length > 0) {
             window.adicionarMensagemChat("Sistema", `${novosArquivos.length} arquivo(s) adicionado(s) à fila via seleção.`, 'system-message info');
         }
@@ -124,13 +168,13 @@ if (btnEnviarChat && chatInput) {
     });
     chatInput.addEventListener('keypress', function(e) {
         if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
+            e.preventDefault(); // Impede nova linha no textarea
              if (typeof window.enviarMensagemChat === 'function') {
                  window.enviarMensagemChat();
              } else {
                  console.error("Função enviarMensagemChat não disponível.");
                  if (typeof window.adicionarMensagemChat === 'function') {
-                    window.adicionarMensagemChat("Sistema", "Erro interno ao enviar mensagem.", "system-message error");
+                     window.adicionarMensagemChat("Sistema", "Erro interno ao enviar mensagem.", "system-message error");
                  }
              }
         }
@@ -142,6 +186,7 @@ if (btnEnviarChat && chatInput) {
             const extensoesPermitidas = /(\.pdf|\.docx|\.zip)$/i;
             const arquivosValidos = pastedFiles.filter(f => extensoesPermitidas.test(f.name));
             const arquivosInvalidosCount = pastedFiles.length - arquivosValidos.length;
+
             if (arquivosValidos.length > 0) {
                 arquivosParaEnviar = arquivosParaEnviar.concat(arquivosValidos);
                 renderizarListaArquivos();
@@ -150,14 +195,14 @@ if (btnEnviarChat && chatInput) {
                     feedbackMsg += ` ${arquivosInvalidosCount} arquivo(s) foram ignorados (tipo inválido).`;
                 }
                 if (typeof window.adicionarMensagemChat === 'function') {
-                    window.adicionarMensagemChat("Sistema", feedbackMsg, 'system-message info');
+                     window.adicionarMensagemChat("Sistema", feedbackMsg, 'system-message info');
                 }
             } else if (arquivosInvalidosCount > 0) {
                  if (typeof window.adicionarMensagemChat === 'function') {
-                    window.adicionarMensagemChat("Sistema", `${arquivosInvalidosCount} arquivo(s) colado(s) ignorados (tipo inválido).`, 'system-message warning');
+                     window.adicionarMensagemChat("Sistema", `${arquivosInvalidosCount} arquivo(s) colado(s) ignorados (tipo inválido).`, 'system-message warning');
                  }
             }
-            chatInput.value = '';
+            chatInput.value = ''; // Limpa o input após colar arquivos
         }
     });
 }
@@ -175,6 +220,7 @@ document.addEventListener('drop', (e) => {
         const extensoesPermitidas = /(\.pdf|\.docx|\.zip)$/i;
         const arquivosValidos = droppedFiles.filter(f => extensoesPermitidas.test(f.name));
         const arquivosInvalidosCount = droppedFiles.length - arquivosValidos.length;
+
         if (arquivosValidos.length > 0) {
             arquivosParaEnviar = arquivosParaEnviar.concat(arquivosValidos);
             renderizarListaArquivos();
@@ -182,9 +228,9 @@ document.addEventListener('drop', (e) => {
             if (arquivosInvalidosCount > 0) {
                 feedbackMsg += ` ${arquivosInvalidosCount} ignorados (tipo inválido).`;
             }
-            if (typeof window.adicionarMensagemChat === 'function') {
+             if (typeof window.adicionarMensagemChat === 'function') {
                  window.adicionarMensagemChat("Sistema", feedbackMsg, 'system-message info');
-            }
+             }
         } else if (arquivosInvalidosCount > 0) {
              if (typeof window.adicionarMensagemChat === 'function') {
                  window.adicionarMensagemChat("Sistema", `${arquivosInvalidosCount} arquivo(s) arrastado(s) ignorados (tipo inválido).`, 'system-message warning');
@@ -193,249 +239,136 @@ document.addEventListener('drop', (e) => {
     }
 });
 
-// --- Funcionalidade de Visualização de Conteúdo Completo ---
-let fullContentModal = null;
-let modalTitle = null;
-let modalContent = null;
-let closeModalBtn = null;
 
-// Função para fechar o modal com ESC
-function fecharModalComEsc(event) {
-    if (event.key === 'Escape' && fullContentModal && fullContentModal.style.display === "block") {
-        fecharModal();
-    }
-}
+// --- Funcionalidade de Visualização de Conteúdo Completo (usando <dialog>) ---
 
-// Função para fechar o modal
-function fecharModal() {
-    if (fullContentModal) {
-        fullContentModal.style.display = "none";
-        document.body.style.overflow = ""; // Restaurar rolagem do corpo
-        window.removeEventListener('keydown', fecharModalComEsc); // Remover o evento
-        
-        // Anunciar para leitores de tela que o modal foi fechado
-        const statusElement = document.createElement('div');
-        statusElement.className = 'sr-only';
-        statusElement.setAttribute('role', 'status');
-        statusElement.setAttribute('aria-live', 'assertive');
-        statusElement.textContent = 'Janela de visualização do arquivo fechada.';
-        document.body.appendChild(statusElement);
-        
-        // Remover o elemento de status após ser lido
-        setTimeout(() => {
-            if (statusElement.parentNode) {
-                statusElement.parentNode.removeChild(statusElement);
-            }
-        }, 1000);
-        
-        // Restaurar o foco ao botão que abriu o modal (para acessibilidade)
-        const lastButton = document.querySelector('.btn-view-content[data-last-focus="true"]');
-        if (lastButton) {
-            lastButton.focus();
-            lastButton.removeAttribute('data-last-focus');
-        }
-    }
-}
-
-// Função para configurar armadilha de foco (para acessibilidade)
-function configurarArmadilhaFoco(modalElement) {
-    const focusableElements = modalElement.querySelectorAll(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-    );
-    
-    if (focusableElements.length > 0) {
-        const firstElement = focusableElements[0];
-        const lastElement = focusableElements[focusableElements.length - 1];
-        
-        // Adicionar evento keydown para capturar Tab
-        modalElement.addEventListener('keydown', function(e) {
-            // Se pressionar tab com shift, vai para o elemento anterior
-            if (e.key === 'Tab' && e.shiftKey) {
-                if (document.activeElement === firstElement) {
-                    e.preventDefault();
-                    lastElement.focus();
-                }
-            } 
-            // Se pressionar tab sem shift, vai para o próximo elemento
-            else if (e.key === 'Tab') {
-                if (document.activeElement === lastElement) {
-                    e.preventDefault();
-                    firstElement.focus();
-                }
-            }
-        });
-    }
-}
-
-// Inicializa o modal (cria se não existir, configura botões e listeners)
-function inicializarModalConteudoCompleto() {
-    fullContentModal = document.getElementById('fullContentModal');
-    if (!fullContentModal) {
-        // Cria HTML do modal dinamicamente
-        const modalHTML = `
-            <div id="fullContentModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-describedby="modal-file-content">
-                <div class="modal-content">
-                    <span class="close-modal" title="Fechar" aria-label="Fechar" tabindex="0" role="button">&times;</span>
-                    <h3 id="modal-title">Conteúdo Completo do Arquivo</h3>
-                    <div id="modal-file-content-wrapper">
-                         <div id="modal-file-content"></div>
-                    </div>
-                    <div id="modal-actions">
-                        <button id="copyModalContentBtn" title="Copiar Texto">Copiar</button>
-                    </div>
-                </div>
-            </div>`;
-        const modalContainer = document.createElement('div');
-        modalContainer.innerHTML = modalHTML;
-        document.body.appendChild(modalContainer.firstElementChild);
-        
-        fullContentModal = document.getElementById('fullContentModal'); // Pega referência após criar
-    }
-
-    // Adiciona classe para ajudar com Z-index
-    fullContentModal.classList.add('modal-high-priority');
-
-    // Configurar elementos internos e listeners
-    modalTitle = document.getElementById('modal-title');
-    modalContent = document.getElementById('modal-file-content');
-    closeModalBtn = fullContentModal.querySelector('.close-modal');
-    const copyBtn = document.getElementById('copyModalContentBtn');
-
-    if (!modalTitle || !modalContent || !closeModalBtn) {
-        console.error("Elementos essenciais do modal não encontrados");
+// Inicializa o dialog e seus listeners
+function inicializarDialogConteudoCompleto() {
+    fullContentDialog = document.getElementById('fullContentModal');
+    // Verifica se o elemento <dialog> existe no HTML
+    if (!fullContentDialog || fullContentDialog.tagName !== 'DIALOG') {
+        console.error("Elemento <dialog id='fullContentModal'> não encontrado ou não é um <dialog> no HTML. Verifique os pré-requisitos.");
+        // Impede a inicialização dos listeners se o dialog não existir
         return;
     }
 
-    // Configurar os eventos explicitamente
-    closeModalBtn.onclick = fecharModal;
-    closeModalBtn.onkeydown = function(e) {
-        if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            fecharModal();
-        }
-    };
-    
-    // Evento de clique fora do modal
-    window.onclick = function(event) {
-        if (event.target === fullContentModal) {
-            fecharModal();
-        }
-    };
+    modalTitle = document.getElementById('modal-title');
+    modalContent = document.getElementById('modal-file-content'); // Ou o wrapper se preferir scroll nele
+    copyModalContentBtn = document.getElementById('copyModalContentBtn');
+    internalCloseModalBtn = document.getElementById('internalCloseModalBtn'); // Botão de fechar interno
 
-    // Evento para o botão de cópia
-    if (copyBtn) {
-        copyBtn.onclick = function() {
-            navigator.clipboard.writeText(modalContent.textContent || '')
-                .then(() => { 
-                    copyBtn.textContent = 'Copiado!'; 
-                    // Anunciar para leitores de tela
-                    const statusElement = document.createElement('div');
-                    statusElement.className = 'sr-only';
-                    statusElement.setAttribute('role', 'status');
-                    statusElement.setAttribute('aria-live', 'assertive');
-                    statusElement.textContent = 'Texto copiado para a área de transferência.';
-                    fullContentModal.appendChild(statusElement);
-                    
-                    // Limpar
-                    setTimeout(() => {
-                        copyBtn.textContent = 'Copiar';
-                        if (statusElement.parentNode) {
-                            statusElement.parentNode.removeChild(statusElement);
-                        }
-                    }, 2000); 
-                })
-                .catch(err => { 
-                    console.error('Erro ao copiar texto: ', err); 
-                    copyBtn.textContent = 'Falha!'; 
-                    setTimeout(() => { copyBtn.textContent = 'Copiar'; }, 2000); 
-                });
-        };
+    if (!modalTitle || !modalContent || !copyModalContentBtn || !internalCloseModalBtn) {
+        console.error("Elementos internos do dialog (title, content, copy, #internalCloseModalBtn) não encontrados. Verifique os IDs no HTML.");
+        return;
     }
 
-    // Listener para botões 'Ver Texto'
-    document.addEventListener('click', function(event) {
+    // Evento para o botão de cópia
+    copyModalContentBtn.addEventListener('click', () => {
+        navigator.clipboard.writeText(modalContent.textContent || '')
+            .then(() => {
+                copyModalContentBtn.textContent = 'Copiado!';
+                anunciarParaLeitorTela('Texto copiado para a área de transferência.', 'status', 'assertive', fullContentDialog);
+                setTimeout(() => { copyModalContentBtn.textContent = 'Copiar'; }, 2000);
+            })
+            .catch(err => {
+                console.error('Erro ao copiar texto: ', err);
+                copyModalContentBtn.textContent = 'Falha!';
+                anunciarParaLeitorTela('Falha ao copiar texto.', 'alert', 'assertive', fullContentDialog);
+                setTimeout(() => { copyModalContentBtn.textContent = 'Copiar'; }, 2000);
+            });
+    });
+
+    // Evento para o botão de fechar INTERNO (com id="internalCloseModalBtn")
+    internalCloseModalBtn.addEventListener('click', () => {
+        fullContentDialog.close('button'); // Fecha o dialog (passa um retorno opcional)
+    });
+
+    // Evento 'close' do dialog: disparado ao fechar (via Esc, botão com value="cancel", ou .close())
+    fullContentDialog.addEventListener('close', () => {
+        console.log("Dialog fechado. Valor de retorno:", fullContentDialog.returnValue); // returnValue pode ser útil
+        anunciarParaLeitorTela('Janela de visualização do arquivo fechada.'); // Anuncia fechamento
+
+        // Tenta restaurar o foco para o botão que abriu o dialog
+        if (ultimoBotaoFocado) {
+            console.log("Restaurando foco para:", ultimoBotaoFocado);
+            ultimoBotaoFocado.focus();
+            ultimoBotaoFocado = null; // Limpa a referência após restaurar
+        } else {
+            console.warn("Não foi possível restaurar o foco: último botão não encontrado.");
+        }
+        // Limpa o conteúdo ao fechar para não mostrar dados antigos na próxima abertura
+         if(modalContent) modalContent.innerHTML = '';
+         if(modalTitle) modalTitle.textContent = '';
+    });
+
+    // Opcional: Fechar ao clicar no backdrop (área fora do dialog)
+    fullContentDialog.addEventListener('click', (event) => {
+        // Verifica se o clique foi diretamente no elemento dialog (backdrop)
+        if (event.target === fullContentDialog) {
+            console.log("Clique no backdrop detectado.");
+            fullContentDialog.close('backdrop'); // Fecha com um valor de retorno indicando a causa
+        }
+    });
+
+    // Listener global para cliques nos botões 'Ver Texto'
+    document.addEventListener('click', (event) => {
         const viewButton = event.target.closest('.btn-view-content');
         if (viewButton) {
             const fileId = viewButton.getAttribute('data-file-id');
-            if (fileId) {
-                // Marca o botão que foi clicado para restaurar o foco depois
-                document.querySelectorAll('.btn-view-content[data-last-focus="true"]').forEach(btn => {
-                    btn.removeAttribute('data-last-focus');
-                });
-                viewButton.setAttribute('data-last-focus', 'true');
-                
+            // Garante que o dialog foi encontrado na inicialização antes de tentar abrir
+            if (fileId && fullContentDialog) {
+                ultimoBotaoFocado = viewButton; // Guarda a referência do botão
+                console.log("Botão 'Ver Texto' clicado, guardando:", ultimoBotaoFocado);
                 abrirConteudoCompleto(fileId);
+            } else if (!fullContentDialog) {
+                console.error("Dialog de conteúdo não inicializado. O botão 'Ver Texto' não funcionará.");
             }
         }
     });
 
-    console.log("Modal inicializado com sucesso");
+    console.log("Dialog de conteúdo completo inicializado.");
 }
 
-// Função para abrir o modal e buscar o conteúdo (Lógica Principal)
+// Função para ABRIR o dialog e buscar o conteúdo
 function abrirConteudoCompleto(fileId) {
-    console.log("Abrindo conteúdo para file ID:", fileId); // Log para depuração
-    
-    // Garantir que o modal existe e está inicializado
-    if (!fullContentModal) {
-        console.log("Modal não encontrado, inicializando novamente");
-        inicializarModalConteudoCompleto();
-    }
-    
-    // Verificar novamente após inicialização
-    if (!fullContentModal || !modalTitle || !modalContent) {
-        console.error("Erro crítico: Modal não pode ser inicializado");
-        if(typeof window.adicionarMensagemStatus === 'function') {
-            window.adicionarMensagemStatus("Erro interno ao abrir visualização. Recarregue a página.", "error");
-        }
+    // Re-verifica se o dialog e seus elementos essenciais estão disponíveis
+    if (!fullContentDialog || !modalTitle || !modalContent) {
+        console.error("Dialog não está pronto ou elementos internos faltando. Impossível abrir.");
+         if(typeof window.adicionarMensagemStatus === 'function') {
+             window.adicionarMensagemStatus("Erro interno ao tentar abrir visualização.", "error");
+         }
         return;
     }
 
-    // Definir estado inicial e mostrar o modal - FORÇAR DISPLAY BLOCK
-    modalContent.innerHTML = '<div class="loading-spinner">Carregando conteúdo completo...</div>';
-    modalTitle.textContent = 'Carregando...';
-    
-    // Importante para acessibilidade - configurar atributos ARIA
-    fullContentModal.setAttribute('role', 'dialog');
-    fullContentModal.setAttribute('aria-modal', 'true');
-    fullContentModal.setAttribute('aria-labelledby', 'modal-title');
-    fullContentModal.setAttribute('aria-describedby', 'modal-file-content');
-    
-    // Tornar o modal visível e ajustar o foco
-    fullContentModal.style.display = "block"; 
-    document.body.style.overflow = "hidden"; // Impedir rolagem do corpo da página
-    
-    // Anunciar para leitores de tela que o modal foi aberto
-    const statusElement = document.createElement('div');
-    statusElement.className = 'sr-only';
-    statusElement.setAttribute('role', 'status');
-    statusElement.setAttribute('aria-live', 'assertive');
-    statusElement.textContent = 'Janela de visualização do arquivo aberta. Carregando conteúdo.';
-    fullContentModal.appendChild(statusElement);
-    
-    // Remover o elemento de status após ser lido
-    setTimeout(() => {
-        if (statusElement.parentNode) {
-            statusElement.parentNode.removeChild(statusElement);
-        }
-    }, 1000);
-    
-    // Dar foco ao primeiro elemento focável dentro do modal (importante para acessibilidade)
-    setTimeout(() => {
-        const closeBtn = fullContentModal.querySelector('.close-modal');
-        if (closeBtn) closeBtn.focus();
-    }, 50);
+    console.log("Abrindo dialog para file ID:", fileId);
 
-    // Adicionar evento para a tecla ESC
-    window.addEventListener('keydown', fecharModalComEsc);
-    
-    // Armadilha de foco para acessibilidade
-    configurarArmadilhaFoco(fullContentModal);
-    
+    // Define estado inicial de carregamento
+    modalTitle.textContent = 'Carregando...';
+    // Use um estilo CSS para .loading-spinner como no seu CSS original
+    modalContent.innerHTML = '<div class="loading-spinner">Carregando conteúdo completo...</div>';
+
+    // Abre o dialog como MODAL (nativo do navegador)
+    fullContentDialog.showModal();
+    anunciarParaLeitorTela('Janela de visualização do arquivo aberta. Carregando conteúdo.', 'dialog'); // 'dialog' role é apropriado
+
+    // Define o foco inicial para o título (H3 com tabindex="-1")
+    // Usar setTimeout pequeno garante que o dialog esteja renderizado e pronto para receber foco
+    setTimeout(() => {
+        if (modalTitle) { // Verifica se o título ainda existe
+           modalTitle.focus();
+           console.log("Foco inicial definido para:", document.activeElement);
+        } else {
+            console.warn("Título do modal não encontrado para definir foco inicial.");
+            // Fallback: focar no próprio dialog ou botão de fechar
+            internalCloseModalBtn?.focus();
+        }
+    }, 100); // 100ms geralmente é seguro
+
     // Busca o conteúdo na API
     fetch(`/api/get-full-content/${fileId}`)
         .then(response => {
             if (!response.ok) {
+                // Tenta ler o erro do JSON, senão usa o statusText
                 return response.json()
                     .then(errData => { throw new Error(errData?.error || `Erro ${response.status}`); })
                     .catch(() => { throw new Error(`Erro ${response.status}: ${response.statusText || 'Erro servidor'}`); });
@@ -443,62 +376,48 @@ function abrirConteudoCompleto(fileId) {
             return response.json();
         })
         .then(data => {
-            if (!data) throw new Error("Resposta do servidor inválida.");
-            
-            // Atualiza título e conteúdo do modal
-            modalTitle.textContent = `Conteúdo Completo: ${data.original_name || 'Arquivo'}`;
-            modalContent.innerHTML = formatarConteudoArquivo(data.content);
-            
-            // Anunciar para leitores de tela que o conteúdo foi carregado
-            const statusElement = document.createElement('div');
-            statusElement.className = 'sr-only';
-            statusElement.setAttribute('role', 'status');
-            statusElement.setAttribute('aria-live', 'assertive');
-            statusElement.textContent = 'Conteúdo do arquivo carregado.';
-            fullContentModal.appendChild(statusElement);
-            
-            // Remover o elemento de status após ser lido
-            setTimeout(() => {
-                if (statusElement.parentNode) {
-                    statusElement.parentNode.removeChild(statusElement);
-                }
-            }, 1000);
+            if (!data || typeof data.content === 'undefined') throw new Error("Resposta do servidor inválida ou sem conteúdo.");
+
+            // Atualiza título e conteúdo (garante que os elementos ainda existem)
+             if (modalTitle) modalTitle.textContent = `Conteúdo Completo: ${data.original_name || 'Arquivo'}`;
+             if (modalContent) modalContent.innerHTML = formatarConteudoArquivo(data.content);
+
+            anunciarParaLeitorTela('Conteúdo do arquivo carregado.', 'status', 'assertive', fullContentDialog);
+
+             // Opcional: Mover foco para o conteúdo após carregar, se for longo e scrollable
+             // const contentWrapper = document.getElementById('modal-file-content-wrapper');
+             // if (contentWrapper) {
+             //    contentWrapper.setAttribute('tabindex', '-1'); // Torna focável
+             //    setTimeout(() => contentWrapper.focus(), 50);
+             // }
+
         })
         .catch(error => {
             console.error("Erro ao buscar conteúdo:", error);
-            modalTitle.textContent = 'Erro ao Carregar';
-            modalContent.innerHTML = `
+            // Atualiza título e conteúdo com erro (garante que os elementos ainda existem)
+            if (modalTitle) modalTitle.textContent = 'Erro ao Carregar';
+            if (modalContent) modalContent.innerHTML = `
                 <div class="error-message">
                     <p>Não foi possível carregar o conteúdo.</p>
                     <p><small>${error.message}</small></p>
-                    <button onclick="window.abrirConteudoCompleto('${fileId}')">Tentar novamente</button>
-                </div>`;
-            
-            // Anunciar erro para leitores de tela
-            const statusElement = document.createElement('div');
-            statusElement.className = 'sr-only';
-            statusElement.setAttribute('role', 'alert');
-            statusElement.textContent = 'Erro ao carregar o conteúdo do arquivo.';
-            fullContentModal.appendChild(statusElement);
-            
-            setTimeout(() => {
-                if (statusElement.parentNode) {
-                    statusElement.parentNode.removeChild(statusElement);
-                }
-            }, 1000);
+                    <button type="button" onclick="window.abrirConteudoCompleto('${fileId}')">Tentar novamente</button>
+                </div>`; // Usar type="button"
+
+            anunciarParaLeitorTela(`Erro ao carregar conteúdo: ${error.message}`, 'alert', 'assertive', fullContentDialog);
         });
 }
 
 // Formata conteúdo de texto para exibição segura no HTML
 function formatarConteudoArquivo(conteudo) {
     if (conteudo === null || typeof conteudo === 'undefined') {
-        return '<div class="error-message">Conteúdo não disponível ou vazio.</div>';
+        // Use uma classe CSS para estilizar mensagens informativas/de erro
+        return '<div class="info-message">Conteúdo não disponível ou vazio.</div>';
     }
     if (typeof conteudo !== 'string') {
         conteudo = String(conteudo);
     }
     if (conteudo.trim() === '') {
-         return '<div class="error-message">O arquivo parece estar vazio.</div>';
+         return '<div class="info-message">O arquivo parece estar vazio.</div>';
     }
     // Escapa caracteres HTML essenciais
     const conteudoEscapado = conteudo
@@ -507,17 +426,49 @@ function formatarConteudoArquivo(conteudo) {
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
-    // Retorna o conteúdo escapado (o CSS com white-space: pre-wrap cuidará das quebras de linha)
-    return `${conteudoEscapado}`;
+
+    // Retorna apenas o conteúdo escapado. O CSS deve cuidar da formatação (white-space: pre-wrap)
+    // no elemento #modal-file-content ou seu wrapper.
+     return conteudoEscapado;
 }
 
-// --- Inicialização e Exportações ---
-window.abrirConteudoCompleto = abrirConteudoCompleto; // Exposta para o botão de erro
-document.addEventListener('app:pronto', inicializarModalConteudoCompleto); // Inicializa o modal quando tudo estiver carregado
-window.renderizarListaArquivos = renderizarListaArquivos;
-renderizarListaArquivos(); // Renderiza a lista inicial
 
-// Notifica que o módulo core foi carregado
+// --- Inicialização e Exportações ---
+// Expõe a função para o botão de erro 'Tentar novamente' (se ainda necessário)
+window.abrirConteudoCompleto = abrirConteudoCompleto;
+// Expõe renderizarListaArquivos se for chamada de outros módulos
+window.renderizarListaArquivos = renderizarListaArquivos;
+
+
+// Inicializa o dialog quando a aplicação estiver pronta
+// Assume que o evento 'app:pronto' é disparado pelo seu main.js ou similar
+// IMPORTANTE: Garanta que 'app:pronto' seja disparado *depois* que o DOM estiver completo.
+let appProntoDisparado = false;
+document.addEventListener('app:pronto', () => {
+    if(appProntoDisparado) return; // Evita inicialização dupla
+    appProntoDisparado = true;
+    console.log("Evento 'app:pronto' recebido. Inicializando Dialog...");
+    inicializarDialogConteudoCompleto();
+});
+
+// Fallback usando DOMContentLoaded se 'app:pronto' não for confiável ou não existir
+// A inicialização só ocorrerá uma vez (ou por 'app:pronto' ou por 'DOMContentLoaded')
+document.addEventListener('DOMContentLoaded', () => {
+    // Só inicializa via DOMContentLoaded se 'app:pronto' ainda não tiver disparado
+    if (!appProntoDisparado) {
+         console.log("Evento 'DOMContentLoaded' recebido ANTES de 'app:pronto'. Inicializando Dialog...");
+         // Pode ser necessário um pequeno delay se outros scripts ainda não rodaram
+         setTimeout(inicializarDialogConteudoCompleto, 100);
+    } else {
+         console.log("Evento 'DOMContentLoaded' recebido DEPOIS de 'app:pronto'. Dialog já deve estar inicializado.");
+    }
+});
+
+
+// Renderiza a lista de arquivos inicial (caso haja algum estado pré-carregado)
+renderizarListaArquivos();
+
+// Notifica que o módulo core (potencialmente) carregou (outros módulos podem ouvir)
 const coreLoadedEvent = new CustomEvent('core-loaded');
 document.dispatchEvent(coreLoadedEvent);
-console.log("Módulo UI Core carregado (versão com acessibilidade melhorada)");
+console.log("Módulo UI Core (v. <dialog>) carregado e pronto para inicializar dialog.");

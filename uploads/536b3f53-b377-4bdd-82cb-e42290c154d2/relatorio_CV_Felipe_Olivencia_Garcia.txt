@@ -1,0 +1,28 @@
+Relatório Resumido - Candidato None
+
+Candidato com aproximadamente 8 anos de experiência em suporte técnico e acessibilidade digital, demonstrando forte conhecimento em WCAG, WAI-ARIA e ferramentas de teste. Experiência significativa em ambientes Azure e Active Directory, além de habilidades em resolução de problemas e suporte a usuários. O perfil sugere adequação para posições que exigem expertise em acessibilidade web e suporte de infraestrutura.
+
+Experiência Profissional:
+- Analista de Suporte III, Radix Engenharia e Software: Gerenciamento de problemas técnicos, administração de ambientes Azure, Active Directory e suporte a usuários Windows 11.
+- Analista de Acessibilidade, CI&T: Garantia de acessibilidade em plataformas web e aplicativos móveis, testes de acessibilidade e colaboração com equipes de desenvolvimento.
+- Analista de Suporte, Serasa Experian: Suporte técnico, cadastro de usuários e manutenção de sistemas.
+- Analista de Suporte, Banco Santander S/A: Gerenciamento de chamados e suporte técnico a colaboradores.
+
+Formação:
+- Tecnólogo em Gestão em Tecnologia da Informação - UniSantos (em curso)
+- Ensino Médio Técnico em Manutenção e Suporte em Informática - E.E. João Teodoresco
+
+Habilidades Técnicas:
+- WCAG
+- WAI-ARIA
+- Jira
+- Azure
+- Active Directory
+- RDP
+- Windows 11
+- HTML
+- CSS
+- Acessibilidade Web
+
+Idiomas:
+- N/E

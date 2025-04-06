@@ -7,20 +7,25 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
 <body>
-    <!-- Indicador de carregamento -->
     <div id="loading-indicator">
         Carregando componentes do sistema...
     </div>
 
-    <!-- Modal para conteúdo completo do arquivo -->
-    <div id="fullContentModal" class="modal">
+    <dialog id="fullContentModal">
         <div class="modal-content">
-            <span class="close-modal">&times;</span>
-            <h3 id="modal-title">Conteúdo Completo do Arquivo</h3>
-            <div id="modal-file-content"></div>
-        </div>
-    </div>
+            <h3 id="modal-title" tabindex="-1">Conteúdo Completo do Arquivo</h3>
 
+            <div id="modal-file-content-wrapper">
+                 <div id="modal-file-content">
+                     </div>
+            </div>
+
+            <div id="modal-actions">
+                <button type="button" id="copyModalContentBtn" title="Copiar Texto">Copiar</button>
+                <button type="button" value="cancel" id="internalCloseModalBtn" title="Fechar">Fechar</button>
+            </div>
+        </div>
+    </dialog>
     <div class="container">
         <h1>Assistente de Análise de Currículos</h1>
 
@@ -58,22 +63,24 @@
         <div id="status-section">
              <h2>Andamento da Análise:</h2>
              <div id="status">Pronto para analisar arquivos. Selecione ou cole arquivos e clique em "Analisar Arquivo(s) na Fila".</div>
+             <div id="results-output"></div>
         </div>
-    </div>
+    </div> <script>
+        // Mostra imediatamente (ou quase)
+        const loadingIndicator = document.getElementById('loading-indicator');
+        if (loadingIndicator) loadingIndicator.style.display = 'block';
 
-    <!-- Script para mostrar indicador de carregamento -->
-    <script>
-        document.getElementById('loading-indicator').style.display = 'block';
+        // Escuta pelo evento personalizado para esconder
         document.addEventListener('app:pronto', function() {
-            document.getElementById('loading-indicator').style.display = 'none';
+            if (loadingIndicator) loadingIndicator.style.display = 'none';
         });
-        // Timeout de segurança para esconder o indicador mesmo se falhar
+
+        // Timeout de segurança para esconder mesmo se falhar
         setTimeout(function() {
-            document.getElementById('loading-indicator').style.display = 'none';
-        }, 15000);
+            if (loadingIndicator) loadingIndicator.style.display = 'none';
+        }, 15000); // 15 segundos
     </script>
 
-    <!-- Carregamento modular dos scripts -->
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-</body>
+    </body>
 </html>
